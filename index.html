@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نقشه تمام‌صفحه و هوشمند ایران</title>
+    <style>
+        :root {
+            --bg-color: #0f172a; /* تم تیره و مدرن برای پس‌زمینه */
+            --province-fill: #1e293b; /* رنگ استان‌ها در حالت عادی */
+            --province-stroke: #475569; /* رنگ مرز استان‌ها */
+            --province-hover: #3b82f6; /* رنگ هنگام هاور */
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* جلوگیری از اسکرول */
+            background-color: var(--bg-color);
+            font-family: 'Tahoma', sans-serif;
+        }
+
+        /* محفظه اصلی نقشه که تمام صفحه را می‌گیرد */
+        #map-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* استایل‌های SVG برای ریسپانسیو بودن کامل */
+        svg {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        svg path {
+            fill: var(--province-fill);
+            stroke: var(--province-stroke);
+            stroke-width: 0.8; /* مرزهای ظریف و مشخص */
+            transition: all 0.3s ease;
+            cursor: pointer;
+            vector-effect: non-scaling-stroke; /* ثابت ماندن ضخامت خط هنگام تغییر سایز */
+        }
+
+        svg path:hover {
+            fill: var(--province-hover) !important;
+            stroke: #fff;
+            stroke-width: 2;
+            filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.5));
+        }
+
+        /* بالون نام استان */
+        #tooltip {
+            position: fixed;
+            background: rgba(255, 255, 255, 0.95);
+            color: #0f172a;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            display: none;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid #ddd;
+        }
+
+        /* عنوان روی صفحه (اختیاری) */
+        .map-title {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .map-title h1 { margin: 0; font-size: 24px; opacity: 0.8; }
+
+        /* لودینگ */
+        .loader {
+            position: absolute;
+            border: 5px solid #1e293b;
+            border-top: 5px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    
+    <div class="map-title">
+        <h1>نقشه تعاملی ایران</h1>
+    </div>
+
+    <div id="map-container">
+        <div class="loader" id="loader"></div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <script>
+        const mapUrl = 'https://raw.githubusercontent.com/nastoohir/iran-map-svg/master/iran.svg';
+        const container = document.getElementById('map-container');
+        const tooltip = document.getElementById('tooltip');
+        const loader = document.getElementById('loader');
+
+        async function fetchMap() {
+            try {
+                const response = await fetch(mapUrl);
+                const svgText = await response.text();
+                
+                loader.style.display = 'none';
+                container.innerHTML = svgText;
+                
+                const svg = container.querySelector('svg');
+                
+                // تنظیمات ریسپانسیو
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                svg.style.display = 'block';
+
+                initInteractions();
+            } catch (e) {
+                container.innerHTML = '<p style="color:white">خطا در بارگذاری نقشه</p>';
+            }
+        }
+
+        function initInteractions() {
+            const provinces = document.querySelectorAll('svg path');
+            
+            provinces.forEach(p => {
+                const name = p.getAttribute('id') || "استان";
+
+                p.addEventListener('mousemove', (e) => {
+                    tooltip.style.display = 'block';
+                    tooltip.innerHTML = `📍 استان ${name}`;
+                    tooltip.style.left = (e.clientX + 20) + 'px';
+                    tooltip.style.top = (e.clientY + 20) + 'px';
+                });
+
+                p.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                });
+
+                p.addEventListener('click', () => {
+                    const slug = name.toLowerCase().replace(/\s+/g, '-');
+                    window.location.href = `provinces/${slug}.html`;
+                });
+            });
+        }
+
+        window.onload = fetchMap;
+    </script>
+</body>
+</html>
